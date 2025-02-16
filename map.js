@@ -16,9 +16,9 @@ map.on('load', () => {
             type: 'line',
             source: src,
             paint: {
-                'line-color': "hsl(117, 70%, 64%)",
+                'line-color': "hsl(112, 77%, 37%)",
                 'line-width': 3,
-                'line-opacity': 0.24
+                'line-opacity': 0.5
             }
         });
     }
