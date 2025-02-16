@@ -27,3 +27,18 @@ html, body {
         }
     }
 }
+
+header {
+    display: flex;
+    gap: 1em;
+    align-items: baseline;
+    margin-left: auto;
+}
+#any-time, #selected-time {
+    display: block;
+    justify-self: flex-end;
+}
+em {
+    color: #999;
+    font-style: italic;
+}

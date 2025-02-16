@@ -37,12 +37,11 @@ map.on('load', () => {
 const svg = d3.select('#map').select('svg');
 let stations = [];
 let trips = [];
-
-function getCoords(station) {
-    const point = new mapboxgl.LngLat(+station.lon, +station.lat);
-    const { x, y } = map.project(point);
-    return { cx: x, cy: y };
-}
+let circles = [];
+let filteredTrips = [];
+let filteredArrivals = new Map();
+let filteredDepartures = new Map();
+let filteredStations = [];
 
 map.on('load', () => {
     const jsonurl = 'https://dsc106.com/labs/lab07/data/bluebikes-stations.json';
@@ -53,9 +52,7 @@ map.on('load', () => {
     });
 
     const csvurl = 'https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv';
-    d3.csv(csvurl).then(csvData => {
-        trips = csvData;
-
+    d3.csv(csvurl).then(trips => {
         departures = d3.rollup(
             trips,
             (v) => v.length,
@@ -66,7 +63,6 @@ map.on('load', () => {
             (v) => v.length,
             (d) => d.end_station_id,
         );
-
         stations = stations.map((station) => {
             let id = station.short_name;
             station.arrivals = arrivals.get(id) ?? 0;
@@ -78,9 +74,9 @@ map.on('load', () => {
         const radiusScale = d3
             .scaleSqrt()
             .domain([0, d3.max(stations, (d) => d.totalTraffic)])
-            .range([0, 25]);
-        
-        const circles = svg.selectAll('circle')
+            .range(timeFilter === -1 ? [0, 25] : [3, 50]);
+    
+        circles = svg.selectAll('circle')
             .data(stations)
             .enter()
             .append('circle')
@@ -93,22 +89,126 @@ map.on('load', () => {
                 d3.select(this)
                     .append('title')
                     .text(`${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
-            });
+        });
+        
+        function getCoords(station) {
+            const point = new mapboxgl.LngLat(+station.lon, +station.lat);
+            const { x, y } = map.project(point);
+            return { cx: x, cy: y };
+        }
         
         function updatePositions() {
             circles
                 .attr('cx', d => getCoords(d).cx)
                 .attr('cy', d => getCoords(d).cy);
         }
-        
+    
         updatePositions();
 
         map.on('move', updatePositions);
         map.on('zoom', updatePositions);
         map.on('resize', updatePositions);
         map.on('moveend', updatePositions);
+
+        for (let trip of trips) {
+            trip.started_at = new Date(trip.started_at);
+            trip.ended_at = new Date(trip.ended_at);
+        }
+
+        function minutesSinceMidnight(date) {
+            return date.getHours() * 60 + date.getMinutes();
+        }
+        function filterTripsbyTime() {
+            filteredTrips = timeFilter === -1
+                ? trips
+                : trips.filter((trip) => {
+                    const startedMinutes = minutesSinceMidnight(trip.started_at);
+                    const endedMinutes = minutesSinceMidnight(trip.ended_at);
+                    return (
+                        Math.abs(startedMinutes - timeFilter) <= 60 ||
+                        Math.abs(endedMinutes - timeFilter) <= 60
+                    );
+                });
+            $: filteredDepartures = d3.rollup(
+                    filteredTrips,
+                    (v) => v.length,
+                    (d) => d.start_station_id,
+                );
+            $: filteredArrivals = d3.rollup(
+                    filteredTrips,
+                    (v) => v.length,
+                    (d) => d.end_station_id,
+                );
+            filteredStations = stations.map((station) => {
+                station = { ...station };
+                let id = station.short_name;
+                station.arrivals = filteredArrivals.get(id) ?? 0;
+                station.departures = filteredDepartures.get(id) ?? 0;
+                station.totalTraffic = station.arrivals + station.departures;
+                return station;
+            });
+            
+            circles = svg.selectAll('circle')
+                .data(filteredStations)
+                .enter()
+                .append('circle')
+                .attr('r', d => radiusScale(d.totalTraffic))
+                .attr('fill', 'steelblue')
+                .attr('stroke', 'white')
+                .attr('stroke-width', 1)
+                .attr('opacity', 0.77)
+                .each(function(d) {
+                    d3.select(this)
+                        .append('title')
+                        .text(`${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
+                });
+            function getCoords(station) {
+                const point = new mapboxgl.LngLat(+station.lon, +station.lat);
+                const { x, y } = map.project(point);
+                return { cx: x, cy: y };
+            }
+            
+            function updatePositions() {
+                circles
+                    .attr('cx', d => getCoords(d).cx)
+                    .attr('cy', d => getCoords(d).cy);
+            }
+            console.log(circles);
+            updatePositions();
+
+            map.on('move', updatePositions);
+            map.on('zoom', updatePositions);
+            map.on('resize', updatePositions);
+            map.on('moveend', updatePositions);
+        }
+        filterTripsbyTime();
+        timeSlider.addEventListener('input', filterTripsbyTime);
     }).catch(error => {
         console.error('Error loading CSV:', error);
     });
-
 });
+
+let timeFilter = -1;
+
+const timeSlider = document.getElementById('time-slider');
+const selectedTime = document.getElementById('selected-time');
+const anyTimeLabel = document.getElementById('any-time');
+
+function formatTime(minutes) {
+    const date = new Date(0, 0, 0, 0, minutes);
+    return date.toLocaleString('en-US', { timeStyle: 'short' });
+}
+
+function updateTimeDisplay() {
+    timeFilter = Number(timeSlider.value);
+
+    if (timeFilter === -1) {
+        selectedTime.textContent = '';
+        anyTimeLabel.style.display = 'block';
+    } else {
+        selectedTime.textContent = formatTime(timeFilter);
+        anyTimeLabel.style.display = 'none';
+    }
+}
+timeSlider.addEventListener('input', updateTimeDisplay);
+updateTimeDisplay();
