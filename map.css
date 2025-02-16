@@ -20,9 +20,9 @@ html, body {
         height: 100%;
         pointer-events: none;
         circle {
-            fill: 'steelblue';
+            fill: steelblue;
             fill-opacity: 0.77;
-            stroke: 'gainsboro';
+            stroke: gainsboro;
             pointer-events: auto;
         }
     }

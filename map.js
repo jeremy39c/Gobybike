@@ -43,6 +43,31 @@ let filteredArrivals = new Map();
 let filteredDepartures = new Map();
 let filteredStations = [];
 
+let timeFilter = -1;
+
+const timeSlider = document.getElementById('time-slider');
+const selectedTime = document.getElementById('selected-time');
+const anyTimeLabel = document.getElementById('any-time');
+
+function formatTime(minutes) {
+    const date = new Date(0, 0, 0, 0, minutes);
+    return date.toLocaleString('en-US', { timeStyle: 'short' });
+}
+
+function updateTimeDisplay() {
+    timeFilter = Number(timeSlider.value);
+
+    if (timeFilter === -1) {
+        selectedTime.textContent = '';
+        anyTimeLabel.style.display = 'block';
+    } else {
+        selectedTime.textContent = formatTime(timeFilter);
+        anyTimeLabel.style.display = 'none';
+    }
+}
+timeSlider.addEventListener('input', updateTimeDisplay);
+updateTimeDisplay();
+
 map.on('load', () => {
     const jsonurl = 'https://dsc106.com/labs/lab07/data/bluebikes-stations.json';
     d3.json(jsonurl).then(jsonData => {
@@ -148,8 +173,10 @@ map.on('load', () => {
                 return station;
             });
             
+            circles.remove();
+
             circles = svg.selectAll('circle')
-                .data(filteredStations)
+                .data(filteredStations, d => d.id)
                 .enter()
                 .append('circle')
                 .attr('r', d => radiusScale(d.totalTraffic))
@@ -162,53 +189,10 @@ map.on('load', () => {
                         .append('title')
                         .text(`${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
                 });
-            function getCoords(station) {
-                const point = new mapboxgl.LngLat(+station.lon, +station.lat);
-                const { x, y } = map.project(point);
-                return { cx: x, cy: y };
-            }
-            
-            function updatePositions() {
-                circles
-                    .attr('cx', d => getCoords(d).cx)
-                    .attr('cy', d => getCoords(d).cy);
-            }
-            console.log(circles);
-            updatePositions();
-
-            map.on('move', updatePositions);
-            map.on('zoom', updatePositions);
-            map.on('resize', updatePositions);
-            map.on('moveend', updatePositions);
+                updatePositions();
         }
-        filterTripsbyTime();
         timeSlider.addEventListener('input', filterTripsbyTime);
     }).catch(error => {
         console.error('Error loading CSV:', error);
     });
 });
-
-let timeFilter = -1;
-
-const timeSlider = document.getElementById('time-slider');
-const selectedTime = document.getElementById('selected-time');
-const anyTimeLabel = document.getElementById('any-time');
-
-function formatTime(minutes) {
-    const date = new Date(0, 0, 0, 0, minutes);
-    return date.toLocaleString('en-US', { timeStyle: 'short' });
-}
-
-function updateTimeDisplay() {
-    timeFilter = Number(timeSlider.value);
-
-    if (timeFilter === -1) {
-        selectedTime.textContent = '';
-        anyTimeLabel.style.display = 'block';
-    } else {
-        selectedTime.textContent = formatTime(timeFilter);
-        anyTimeLabel.style.display = 'none';
-    }
-}
-timeSlider.addEventListener('input', updateTimeDisplay);
-updateTimeDisplay();
