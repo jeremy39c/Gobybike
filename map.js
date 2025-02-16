@@ -35,13 +35,18 @@ map.on('load', () => {
 });
 
 const svg = d3.select('#map').select('svg');
+
 let stations = [];
 let trips = [];
 let circles = [];
-let filteredTrips = [];
+let arrivals = [];
+let departures = [];
 let filteredArrivals = new Map();
 let filteredDepartures = new Map();
 let filteredStations = [];
+
+let departuresByMinute = Array.from({ length: 1440 }, () => []);
+let arrivalsByMinute = Array.from({ length: 1440 }, () => []);
 
 let timeFilter = -1;
 
@@ -138,40 +143,61 @@ map.on('load', () => {
         for (let trip of trips) {
             trip.started_at = new Date(trip.started_at);
             trip.ended_at = new Date(trip.ended_at);
+
+            let startedMinutes = minutesSinceMidnight(trip.started_at);
+            departuresByMinute[startedMinutes].push(trip);
+
+            let endedMinutes = minutesSinceMidnight(trip.ended_at);
+            arrivalsByMinute[endedMinutes].push(trip);
+
         }
 
         function minutesSinceMidnight(date) {
             return date.getHours() * 60 + date.getMinutes();
         }
+        function filterByMinute(tripsByMinute, minute) {
+            let minMinute = (minute - 60 + 1440) % 1440;
+            let maxMinute = (minute + 60) % 1440;
+          
+            if (minMinute > maxMinute) {
+                let beforeMidnight = tripsByMinute.slice(minMinute);
+                let afterMidnight = tripsByMinute.slice(0, maxMinute);
+                return beforeMidnight.concat(afterMidnight).flat();
+            } else {
+                return tripsByMinute.slice(minMinute, maxMinute).flat();
+            }
+        }
         function filterTripsbyTime() {
-            filteredTrips = timeFilter === -1
-                ? trips
-                : trips.filter((trip) => {
-                    const startedMinutes = minutesSinceMidnight(trip.started_at);
-                    const endedMinutes = minutesSinceMidnight(trip.ended_at);
-                    return (
-                        Math.abs(startedMinutes - timeFilter) <= 60 ||
-                        Math.abs(endedMinutes - timeFilter) <= 60
-                    );
+            if(timeFilter === -1) {
+                filteredStations = stations.map((station) => {
+                    station = { ...station };
+                    let id = station.short_name;
+                    station.arrivals = arrivals.get(id) ?? 0;
+                    station.departures = departures.get(id) ?? 0;
+                    station.totalTraffic = station.arrivals + station.departures;
+                    return station;
                 });
-            $: filteredDepartures = d3.rollup(
-                    filteredTrips,
+            }
+            else {
+                $: filteredDepartures = d3.rollup(
+                    filterByMinute(departuresByMinute, timeFilter),
                     (v) => v.length,
                     (d) => d.start_station_id,
                 );
-            $: filteredArrivals = d3.rollup(
-                    filteredTrips,
-                    (v) => v.length,
-                    (d) => d.end_station_id,
-                );
-            filteredStations = stations.map((station) => {
-                station = { ...station };
-                let id = station.short_name;
-                station.arrivals = filteredArrivals.get(id) ?? 0;
-                station.departures = filteredDepartures.get(id) ?? 0;
-                station.totalTraffic = station.arrivals + station.departures;
-                return station;
-            });
+                $: filteredArrivals = d3.rollup(
+                        filterByMinute(arrivalsByMinute, timeFilter),
+                        (v) => v.length,
+                        (d) => d.end_station_id,
+                    );
+                filteredStations = stations.map((station) => {
+                    station = { ...station };
+                    let id = station.short_name;
+                    station.arrivals = filteredArrivals.get(id) ?? 0;
+                    station.departures = filteredDepartures.get(id) ?? 0;
+                    station.totalTraffic = station.arrivals + station.departures;
+                    return station;
+                });
+            }
             
             circles.remove();
 
