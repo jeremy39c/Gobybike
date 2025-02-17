@@ -120,7 +120,7 @@ map.on('load', () => {
             .each(function(d) {
                 d3.select(this)
                     .append('title')
-                    .text(`${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
+                    .text(`${d.name}\n${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
             })
             .style('--departure-ratio', d => stationFlow(d.departures / d.totalTraffic));
         
@@ -221,11 +221,13 @@ map.on('load', () => {
                 .each(function(d) {
                     d3.select(this)
                         .append('title')
-                        .text(`${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
+                        .text(`${d.name}\n${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
                 })
                 .style('--departure-ratio', d => stationFlow(d.departures / d.totalTraffic));
                 
             updatePositions();
+
+            console.log(filteredStations);
         }
         timeSlider.addEventListener('input', filterTripsbyTime);
     }).catch(error => {
