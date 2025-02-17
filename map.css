@@ -81,11 +81,11 @@ header {
 div.legend {
     display: flex;
     width: 100%;
-    margin-block: 25px;
+    margin-block: 28px;
     justify-content: center;
     gap: 1px;
+    margin-bottom: 0px;
     div {
-        
         display: flex;
         padding-top: 0.5em;
         padding-bottom: 0.5em;
@@ -114,4 +114,10 @@ div.legend {
         opacity: 0.77;
         justify-content: center;
     }
+}
+
+#footnote {
+    margin-left: auto;
+    font-size: 10px;
+    font-style: italic;
 }
