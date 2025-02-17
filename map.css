@@ -1,11 +1,60 @@
 html, body {
     margin: 0;
-    padding: 5;
+    padding: 5px;
     height: 100%;
     width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+#heading-info {
+    display: flex;
+    width: 100%;
+    align-items: baseline;
+    margin-bottom: 1em;
+    gap: 1em;
+    #title-info {
+        display: flex;
+        align-items: baseline;
+        gap: 0.3em;
+        p {
+            font-size: 13px;
+        }
+    }
+}
+header {
+    display: block;
+    width: 33%;
+    gap: 1em;
+    margin-left: auto;
+    #slider-display {
+        display: flex;
+        gap: 5px;
+        #time-slider {
+            width: 75%;
+            justify-content: flex-end;
+            margin: 0px;
+        }
+    }
+    #time-display {
+        display: block;
+        justify-self: flex-end;
+    }
+    #any-time {
+        color: #999;
+        font-style: italic;
+    }
+}
+
+#map circle, .legend > div {
+    --color-departures: steelblue;
+    --color-arrivals: darkorange;
+    --color: color-mix(
+        in oklch,
+        var(--color-departures) calc(100% * var(--departure-ratio)),
+        var(--color-arrivals)
+    );
 }
 
 #map {
@@ -20,7 +69,7 @@ html, body {
         height: 100%;
         pointer-events: none;
         circle {
-            fill: steelblue;
+            fill: var(--color);
             fill-opacity: 0.77;
             stroke: gainsboro;
             pointer-events: auto;
@@ -28,17 +77,33 @@ html, body {
     }
 }
 
-header {
+div.legend {
     display: flex;
-    gap: 1em;
-    align-items: baseline;
-    margin-left: auto;
-}
-#any-time, #selected-time {
-    display: block;
-    justify-self: flex-end;
-}
-em {
-    color: #999;
-    font-style: italic;
+    width: 100%;
+    margin-block: 25px;
+    justify-content: center;
+    gap: 1px;
+    div {
+        flex: 1;
+        display: flex;
+        padding-top: 0.5em;
+        padding-bottom: 0.5em;
+        color: snow;
+        font-weight: bold;
+        white-space: nowrap;
+    }
+    div#dep-legend {
+        background-color: var(--color);
+        justify-content: left;
+        padding-left: 1.4em;
+    }
+    div#bal-legend {
+        background-color: var(--color);
+        justify-content: center;
+    }
+    div#arr-legend {
+        background-color: var(--color);
+        justify-content: right;
+        padding-right: 1.4em;
+    }
 }
