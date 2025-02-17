@@ -73,6 +73,7 @@ header {
             fill-opacity: 0.77;
             stroke: gainsboro;
             pointer-events: auto;
+            cursor: pointer;
         }
     }
 }
